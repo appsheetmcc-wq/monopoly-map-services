@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Marker Display</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Function to get query parameters
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            return JSON.parse(decodeURIComponent(params.get('data')));
+        }
+
+        // Initialize the map
+        const params = getQueryParams();
+        const map = L.map('map').setView([22.0, 114.0], 13);
+
+        // Set tile layer based on query parameter
+        const tileLayerUrl = params.tiles === "NO_LABELS_LIGHT_THEME" ?
+            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" :
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+        L.tileLayer(tileLayerUrl, {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Icon mapping
+        const iconMap = {
+            "BANK": "圖庫/Bank.png",
+            "CHECKPOINT_ACTIVE": "圖庫/Checkpoint (Active).png",
+            "CHECKPOINT_INACTIVE": "圖庫/Checkpoint (Inactive).png",
+            "FOR_OLD": "圖庫/ForElderly.png",
+            "FOR_YOUNG": "圖庫/ForTeen.png",
+            "USER": "圖庫/User.png"
+        };
+
+        // Create an array to hold marker bounds
+        const markers = [];
+
+        // Add markers based on geoinfo
+        params.geoinfo.forEach(info => {
+            const type = Object.keys(info)[0];
+            const { lat, lng } = info[type];
+
+            // Add marker to the map
+            const marker = L.marker([lat, lng], {
+                icon: L.icon({
+                    iconUrl: iconMap[type],
+                    iconSize: [32, 32], // Adjust the size as needed
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                })
+            }).addTo(map).bindPopup(type);
+
+            // Add the marker's position to the markers array
+            markers.push(marker.getLatLng());
+        });
+
+        // Fit the map bounds to include all markers
+        if (markers.length > 0) {
+            const group = L.latLngBounds(markers);
+            map.fitBounds(group);
+        }
+    </script>
+</body>
+</html>
